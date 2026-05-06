@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## BONZAI Store
 
-## Getting Started
+Next.js + FoxyCart (hosted checkout) + Supabase (products + orders).
 
-First, run the development server:
+## Local setup
+
+### Env
+
+Copy `.env.example` to `.env.local` and fill in:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `FOXYCART_STORE_DOMAIN`
+- `FOXYCART_WEBHOOK_SECRET`
+- `SITE_URL` (optional but recommended)
+
+### Supabase
+
+Run these in the Supabase SQL editor:
+
+- `supabase/schema.sql`
+- `supabase/seed.sql`
+
+### Dev
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## FoxyCart config (v1)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Products**: Foxy product `code` must match `products.foxy_code` in Supabase.
+- **Checkout**: hosted.
+- **Return URLs**:
+  - Return: `${SITE_URL}/checkout/return?ref={{custom_order_ref}}`
+  - Receipt: `${SITE_URL}/receipt/{{custom_order_ref}}`
+- **Webhook**:
+  - URL: `${SITE_URL}/api/foxy/webhook`
+  - Secret: `FOXYCART_WEBHOOK_SECRET`
+  - Signature header: `Foxy-Webhook-Signature` (HMAC-SHA256 hex of raw payload)
 
-## Learn More
+## Vercel deploy
 
-To learn more about Next.js, take a look at the following resources:
+1. Import this repo into Vercel.
+2. Add env vars (same as `.env.example`) in Project Settings.
+3. Deploy.
+4. Update FoxyCart webhook + return URLs to your Vercel domain.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Operational notes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `/cart/redirect?slug=bpc-157&qty=1` inserts a `pending` order then redirects to FoxyCart checkout.
+- Foxy webhook `POST /api/foxy/webhook` upserts the order + snapshots line items into `order_items`.
