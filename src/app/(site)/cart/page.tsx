@@ -8,15 +8,32 @@ const card =
 type CartRow = {
   id: string;
   qty: number;
-  products: {
-    id: string;
-    slug: string;
-    name: string;
-    price_cents: number;
-    currency: string;
-    foxy_code: string;
-  } | null;
+  products:
+    | {
+        id: string;
+        slug: string;
+        name: string;
+        price_cents: number;
+        currency: string;
+        foxy_code: string;
+      }
+    | Array<{
+        id: string;
+        slug: string;
+        name: string;
+        price_cents: number;
+        currency: string;
+        foxy_code: string;
+      }>
+    | null;
 };
+
+function unwrapProduct(row: CartRow) {
+  const p = row.products;
+  if (!p) return null;
+  if (Array.isArray(p)) return p[0] ?? null;
+  return p;
+}
 
 export default async function CartPage() {
   const supabase = await createSupabaseServer();
@@ -52,12 +69,16 @@ export default async function CartPage() {
 
   if (error) throw new Error(error.message);
 
-  const rows = (data ?? []) as CartRow[];
-  const items = rows.filter((r) => r.products && r.qty > 0);
+  const rows = (data ?? []) as unknown as CartRow[];
+  const items = rows
+    .map((r) => {
+      const product = unwrapProduct(r);
+      return product && r.qty > 0 ? { ...r, product } : null;
+    })
+    .filter(Boolean) as Array<CartRow & { product: NonNullable<ReturnType<typeof unwrapProduct>> }>;
 
   const subtotalCents = items.reduce((sum, r) => {
-    const p = r.products!;
-    return sum + p.price_cents * r.qty;
+    return sum + r.product.price_cents * r.qty;
   }, 0);
 
   return (
@@ -85,7 +106,6 @@ export default async function CartPage() {
             <div className={`mt-10 ${card}`}>
               <div className="grid gap-4">
                 {items.map((r) => {
-                  const p = r.products!;
                   return (
                     <div
                       key={r.id}
@@ -93,10 +113,10 @@ export default async function CartPage() {
                     >
                       <div className="min-w-0">
                         <div className="text-sm font-medium text-ink">
-                          {p.name}
+                          {r.product.name}
                         </div>
                         <div className="mt-1 font-mono text-xs text-ink/50">
-                          Qty {r.qty} · {formatUSD(p.price_cents)} each
+                          Qty {r.qty} · {formatUSD(r.product.price_cents)} each
                         </div>
                       </div>
 

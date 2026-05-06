@@ -6,15 +6,32 @@ import { createSupabaseService } from "@/lib/supabase/service";
 type CartRow = {
   id: string;
   qty: number;
-  products: {
+  products:
+    | {
     id: string;
     slug: string;
     name: string;
     price_cents: number;
     currency: string;
     foxy_code: string;
-  } | null;
+      }
+    | Array<{
+        id: string;
+        slug: string;
+        name: string;
+        price_cents: number;
+        currency: string;
+        foxy_code: string;
+      }>
+    | null;
 };
+
+function unwrapProduct(row: CartRow) {
+  const p = row.products;
+  if (!p) return null;
+  if (Array.isArray(p)) return p[0] ?? null;
+  return p;
+}
 
 export async function GET(request: Request) {
   const supabaseUser = await createSupabaseServer();
@@ -39,10 +56,24 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const rows = (data ?? []) as CartRow[];
+  const rows = (data ?? []) as unknown as CartRow[];
   const items = rows
-    .filter((r) => r.products && r.qty > 0)
-    .map((r) => ({ cartItemId: r.id, qty: r.qty, product: r.products! }));
+    .map((r) => {
+      const product = unwrapProduct(r);
+      return product && r.qty > 0 ? { cartItemId: r.id, qty: r.qty, product } : null;
+    })
+    .filter(Boolean) as Array<{
+    cartItemId: string;
+    qty: number;
+    product: {
+      id: string;
+      slug: string;
+      name: string;
+      price_cents: number;
+      currency: string;
+      foxy_code: string;
+    };
+  }>;
 
   if (items.length === 0) {
     return NextResponse.redirect(new URL("/cart", url), 302);
