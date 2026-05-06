@@ -8,17 +8,21 @@ type CookieToSet = { name: string; value: string; options: CookieOptions };
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
-  // Malformed post-checkout redirect (`https:/host/...` typo) becomes a path on this host:
-  // `/https:/bonzaipeptides.shop/checkout/return?...` → send user to the real URL.
-  if (path.startsWith("/https:/") || path.startsWith("/http:/")) {
-    const candidate = path.slice(1)
+  // Foxy Refresh bug → browser treats malformed URL as a path on THIS host:
+  // `/https:/www.example.com/checkout/…` or `/https://example.com/…`
+  if (
+    path.startsWith("/https:/") ||
+    path.startsWith("/http:/") ||
+    path.startsWith("/https://") ||
+    path.startsWith("/http://")
+  ) {
+    let candidate = path.slice(1);
+    candidate = candidate
       .replace(/^https:\/(?!\/)/i, "https://")
       .replace(/^http:\/(?!\/)/i, "http://");
     try {
       const dest = new URL(candidate);
-      request.nextUrl.searchParams.forEach((v, k) => {
-        dest.searchParams.set(k, v);
-      });
+      request.nextUrl.searchParams.forEach((v, k) => dest.searchParams.set(k, v));
       return NextResponse.redirect(dest.toString(), 308);
     } catch {
       // continue

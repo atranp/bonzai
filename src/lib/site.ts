@@ -60,16 +60,17 @@ export function absoluteUrl(pathnameOrUrl: string): string {
   }
 }
 
-/** Absolute URL for your own pages (emails, OG, etc.). Prefer `checkoutReturnPathForFoxy` for Foxy `redirect`. */
+/** Absolute URL for your own pages (emails, OG, etc.). */
 export function checkoutReturnAbsoluteUrl(orderRef: string): string {
   const path = `/checkout/return?ref=${encodeURIComponent(orderRef)}`;
   return new URL(path, `${getSiteOrigin()}/`).href;
 }
 
 /**
- * Value for Foxy cart `redirect=` only: **path + query**, no origin.
- * Passing `https://www...` here can make Foxy prepend the store URL from admin and emit
- * `Refresh: .../https://www...` (broken). Relative paths resolve against your configured store domain.
+ * Foxy cart `redirect=` — must be a **root-relative path** on the domain configured in Foxy admin
+ * (not a full URL to another hostname). Foxy merges it with store URL from settings (see cheat sheet → `redirect`).
+ * If Foxy lists `example.com` and you redirect to paths that only resolve on `www.example.com`, fix the
+ * store domain in Foxy to match prod (canonical `www` vs apex).
  */
 export function checkoutReturnPathForFoxy(orderRef: string): string {
   return `/checkout/return?ref=${encodeURIComponent(orderRef)}`;
