@@ -173,12 +173,13 @@ export default async function CartPage() {
               >
                 ← Continue shopping
               </Link>
-              <Link
+              {/* Full navigation: <Link> RSC-fetch follows 302 cross-origin → Foxy blocks with CORS. */}
+              <a
                 href="/cart/checkout"
                 className="inline-flex h-11 items-center justify-center rounded-full bg-ink px-6 text-sm font-semibold text-bone transition-colors hover:bg-ink/90"
               >
                 Checkout
-              </Link>
+              </a>
             </div>
           </>
         )}
