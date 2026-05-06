@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { envServer } from "@/lib/env.server";
+import { absoluteUrl } from "@/lib/site";
 
 export function centsToFoxyPrice(cents: number) {
   return (cents / 100).toFixed(2);
@@ -77,12 +78,10 @@ export function buildFoxyCartUrl(input: {
   );
 
   // Per FoxyCart docs, "redirect" is excluded from validation/hashing.
-  if (envServer.SITE_URL) {
-    base.searchParams.set(
-      "redirect",
-      `${envServer.SITE_URL}/checkout/return?ref=${encodeURIComponent(input.orderRef)}`,
-    );
-  }
+  base.searchParams.set(
+    "redirect",
+    absoluteUrl(`/checkout/return?ref=${encodeURIComponent(input.orderRef)}`),
+  );
 
   return base.toString();
 }
@@ -131,11 +130,13 @@ export function buildFoxyCartUrlMulti(input: {
   });
 
   if (envServer.SITE_URL) {
-    base.searchParams.set(
-      "redirect",
-      `${envServer.SITE_URL}/checkout/return?ref=${encodeURIComponent(input.orderRef)}`,
-    );
+    // no-op; kept for backward compatibility in case envServer.SITE_URL is relied on elsewhere
   }
+
+  base.searchParams.set(
+    "redirect",
+    absoluteUrl(`/checkout/return?ref=${encodeURIComponent(input.orderRef)}`),
+  );
 
   return base.toString();
 }
