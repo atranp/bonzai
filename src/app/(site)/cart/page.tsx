@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { HardNavigateButton } from "@/components/HardNavigateButton";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { formatUSD } from "@/lib/money";
 
@@ -173,13 +174,13 @@ export default async function CartPage() {
               >
                 ← Continue shopping
               </Link>
-              {/* Full navigation: <Link> RSC-fetch follows 302 cross-origin → Foxy blocks with CORS. */}
-              <a
+              {/* window.location avoids any RSC `?_rsc=` fetch that follows 302 to Foxy (CORS). */}
+              <HardNavigateButton
                 href="/cart/checkout"
                 className="inline-flex h-11 items-center justify-center rounded-full bg-ink px-6 text-sm font-semibold text-bone transition-colors hover:bg-ink/90"
               >
                 Checkout
-              </a>
+              </HardNavigateButton>
             </div>
           </>
         )}
