@@ -1,13 +1,28 @@
 import { NextResponse } from "next/server";
-import { getProductBySlug } from "@/lib/products";
-import { createSupabaseService } from "@/lib/supabase/service";
 import { buildFoxyCartUrl } from "@/lib/foxy";
+import { getProductBySlug } from "@/lib/products";
+import { createSupabaseServer } from "@/lib/supabase/server";
+import { createSupabaseService } from "@/lib/supabase/service";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const slug = url.searchParams.get("slug") ?? "";
   const qtyRaw = url.searchParams.get("qty") ?? "1";
   const qty = Math.max(1, Math.min(99, Number.parseInt(qtyRaw, 10) || 1));
+
+  const supabaseUser = await createSupabaseServer();
+  const {
+    data: { user },
+  } = await supabaseUser.auth.getUser();
+
+  if (!user) {
+    const login = new URL("/login", url);
+    login.searchParams.set(
+      "returnTo",
+      `${url.pathname}${url.search}`,
+    );
+    return NextResponse.redirect(login, 302);
+  }
 
   const product = await getProductBySlug(slug);
   if (!product) {
@@ -22,6 +37,7 @@ export async function GET(request: Request) {
   const { error } = await supabase.from("orders").insert({
     order_ref: orderRef,
     status: "pending",
+    user_id: user.id,
     subtotal_cents: subtotalCents,
     total_cents: subtotalCents,
     currency: product.currency ?? "USD",
@@ -42,8 +58,8 @@ export async function GET(request: Request) {
     priceCents: product.price_cents,
     quantity: qty,
     orderRef,
+    userId: user.id,
   });
 
   return NextResponse.redirect(cartUrl, 302);
 }
-

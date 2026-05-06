@@ -14,6 +14,9 @@ export const envServer = {
   get FOXYCART_WEBHOOK_SECRET() {
     return required("FOXYCART_WEBHOOK_SECRET");
   },
+  get FOXYCART_STORE_SECRET() {
+    return required("FOXYCART_STORE_SECRET");
+  },
   get SITE_URL() {
     return process.env.SITE_URL;
   },

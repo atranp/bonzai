@@ -28,11 +28,17 @@ Run these in the Supabase SQL editor:
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+## Supabase auth & accounts
+
+- **Auth**: email/password via Supabase Auth (`/login`, `/signup`, `/logout`).
+- **Account**: `/account`, order history at `/account/orders`, addresses at `/account/shipping`.
+- **Checkout**: `/cart/redirect` requires a signed-in user. The app sends `custom_user_id` (Supabase user id) to FoxyCart so the webhook can attach `orders.user_id`.
+
+Re-run `supabase/schema.sql` on your project if you created the DB before `user_id` / RLS / `shipping_addresses` existed.
 
 ## FoxyCart config (v1)
 
-- **Products**: Foxy product `code` must match `products.foxy_code` in Supabase.
+- **Cart link**: add-to-cart uses `custom_order_ref` and `custom_user_id` (set automatically by `/cart/redirect`).
 - **Checkout**: hosted.
 - **Return URLs**:
   - Return: `${SITE_URL}/checkout/return?ref={{custom_order_ref}}`
@@ -51,5 +57,5 @@ Open `http://localhost:3000`.
 
 ## Operational notes
 
-- `/cart/redirect?slug=bpc-157&qty=1` inserts a `pending` order then redirects to FoxyCart checkout.
+- `/cart/redirect?slug=bpc-157&qty=1` requires sign-in, inserts a `pending` order with `user_id`, then redirects to FoxyCart checkout with `custom_order_ref` + `custom_user_id`.
 - Foxy webhook `POST /api/foxy/webhook` upserts the order + snapshots line items into `order_items`.

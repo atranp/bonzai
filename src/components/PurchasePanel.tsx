@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { formatUSD } from "@/lib/money";
 
@@ -22,14 +23,33 @@ export function PurchasePanel({
   className?: string;
 }) {
   const [qty, setQty] = useState(1);
+  const [adding, setAdding] = useState(false);
+  const router = useRouter();
 
   const href = useMemo(() => {
-    return `/cart/redirect?slug=${encodeURIComponent(slug)}&qty=${qty}`;
+    return `/cart`;
   }, [slug, qty]);
 
   const label = useMemo(() => {
     return `${formatUSD(priceCents)} ${currency}`;
   }, [priceCents, currency]);
+
+  async function addToCart() {
+    if (adding) return;
+    setAdding(true);
+    try {
+      const res = await fetch("/api/cart/add", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ slug, qty }),
+      });
+      if (!res.ok) return;
+      router.push("/cart");
+      router.refresh();
+    } finally {
+      setAdding(false);
+    }
+  }
 
   return (
     <section className={className}>
@@ -89,8 +109,13 @@ export function PurchasePanel({
           <Link
             href={href}
             className="inline-flex h-12 flex-1 items-center justify-center rounded-xl bg-ink px-5 text-sm font-semibold text-bone transition-colors hover:bg-ink/92"
+            onClick={(e) => {
+              e.preventDefault();
+              void addToCart();
+            }}
+            aria-disabled={adding}
           >
-            Add to cart
+            {adding ? "Adding…" : "Add to cart"}
           </Link>
         </div>
 

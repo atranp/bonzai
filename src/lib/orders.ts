@@ -14,12 +14,14 @@ export type Order = {
   order_ref: string;
   status: string;
   email: string | null;
+  user_id?: string | null;
   subtotal_cents: number;
   shipping_cents: number;
   tax_cents: number;
   total_cents: number;
   currency: string;
   shipping_address: unknown | null;
+  payment_summary?: unknown | null;
   foxy_transaction_id: string | null;
   created_at: string;
   order_items?: OrderItem[];
@@ -30,7 +32,7 @@ export async function getOrderByRef(orderRef: string): Promise<Order | null> {
   const { data, error } = await supabase
     .from("orders")
     .select(
-      "id,order_ref,status,email,subtotal_cents,shipping_cents,tax_cents,total_cents,currency,shipping_address,foxy_transaction_id,created_at,order_items(id,product_id,name_snapshot,price_cents,qty,line_total_cents)",
+      "id,order_ref,status,email,user_id,subtotal_cents,shipping_cents,tax_cents,total_cents,currency,shipping_address,payment_summary,foxy_transaction_id,created_at,order_items(id,product_id,name_snapshot,price_cents,qty,line_total_cents)",
     )
     .eq("order_ref", orderRef)
     .maybeSingle();

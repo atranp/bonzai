@@ -155,7 +155,7 @@ export default async function CompoundDetailPage({
             </div>
           </div>
           <Link
-            href={`/cart/redirect?slug=${encodeURIComponent(product.slug)}&qty=1`}
+            href={`/cart`}
             className="ml-auto inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-ink px-5 text-sm font-semibold text-bone transition-colors hover:bg-ink/92"
           >
             Add to cart
