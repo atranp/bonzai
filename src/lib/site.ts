@@ -1,18 +1,67 @@
-/** Site origin for canonical URLs, OG images, JSON-LD. No trailing slash. */
+/** Fix common typo: `https:/host` (one slash) breaks redirects (browser treats as path on current host). */
+function fixMalformedProtocol(input: string): string {
+  return input
+    .replace(/^https:\/(?!\/)/i, "https://")
+    .replace(/^http:\/(?!\/)/i, "http://");
+}
+
+/**
+ * Site origin for canonical URLs, OG images, JSON-LD, Foxy `redirect` absolute URLs.
+ * No trailing slash; always valid `https://host` or `http://host` when possible.
+ */
 export function getSiteOrigin(): string {
   const configured =
     process.env.SITE_URL?.trim() || process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (configured) return configured.replace(/\/$/, "");
-  const vercel = process.env.VERCEL_URL?.trim();
-  if (vercel) return `https://${vercel.replace(/^https?:\/\//, "").replace(/\/$/, "")}`;
-  return "http://localhost:3000";
+
+  let candidate =
+    configured && configured.length > 0
+      ? fixMalformedProtocol(configured.replace(/\/$/, ""))
+      : "";
+
+  if (!candidate) {
+    const production = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+    const vercel = process.env.VERCEL_URL?.trim();
+    const host =
+      production?.replace(/^https?:\/\//, "").replace(/\/$/, "") ??
+      vercel?.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    if (host) candidate = `https://${host}`;
+  }
+
+  if (!candidate) return "http://localhost:3000";
+
+  try {
+    if (!/^https?:\/\//i.test(candidate)) {
+      candidate = `https://${candidate.replace(/^\/+/, "")}`;
+    }
+    const u = new URL(candidate);
+    return `${u.protocol}//${u.host}`;
+  } catch {
+    return candidate.replace(/\/$/, "");
+  }
 }
 
 export function absoluteUrl(pathnameOrUrl: string): string {
-  if (/^https?:\/\//i.test(pathnameOrUrl)) return pathnameOrUrl;
+  if (/^https?:\/\//i.test(pathnameOrUrl)) {
+    const fixed = fixMalformedProtocol(pathnameOrUrl);
+    try {
+      return new URL(fixed).href;
+    } catch {
+      return fixed;
+    }
+  }
   const origin = getSiteOrigin();
   const path = pathnameOrUrl.startsWith("/")
     ? pathnameOrUrl
     : `/${pathnameOrUrl}`;
-  return `${origin}${path}`;
+  try {
+    return new URL(path, `${origin}/`).href;
+  } catch {
+    return `${origin}${path}`;
+  }
+}
+
+/** Absolute URL Foxy redirects to post-checkout (`redirect` cart param must be RFC-valid). */
+export function checkoutReturnAbsoluteUrl(orderRef: string): string {
+  const path = `/checkout/return?ref=${encodeURIComponent(orderRef)}`;
+  return new URL(path, `${getSiteOrigin()}/`).href;
 }

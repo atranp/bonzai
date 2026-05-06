@@ -6,6 +6,25 @@ import { env } from "@/lib/env";
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
 export async function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+
+  // Malformed post-checkout redirect (`https:/host/...` typo) becomes a path on this host:
+  // `/https:/bonzaipeptides.shop/checkout/return?...` → send user to the real URL.
+  if (path.startsWith("/https:/") || path.startsWith("/http:/")) {
+    const candidate = path.slice(1)
+      .replace(/^https:\/(?!\/)/i, "https://")
+      .replace(/^http:\/(?!\/)/i, "http://");
+    try {
+      const dest = new URL(candidate);
+      request.nextUrl.searchParams.forEach((v, k) => {
+        dest.searchParams.set(k, v);
+      });
+      return NextResponse.redirect(dest.toString(), 308);
+    } catch {
+      // continue
+    }
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
@@ -29,9 +48,10 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const path = request.nextUrl.pathname;
   const needsAuth =
-    path.startsWith("/account") || path === "/cart/redirect";
+    path.startsWith("/account") ||
+    path === "/cart/redirect" ||
+    path === "/cart/checkout";
 
   if (needsAuth && !user) {
     const url = request.nextUrl.clone();
